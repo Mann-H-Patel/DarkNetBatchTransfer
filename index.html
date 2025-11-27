@@ -3,15 +3,15 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1" />
-<title>DARKNET // BATCH_LINK</title>
+<title>DARKNET // BATCH_LINK_PRO</title>
 <script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script>
 <style>
   :root {
     --bg: #050505;
     --panel: #0a0a0a;
     --border: #333;
-    --neon: #facc15; /* Hacker Gold for Batch Version */
-    --neon-dim: rgba(250, 204, 21, 0.2);
+    --neon: #facc15; /* Gold for Batch */
+    --neon-blue: #3b82f6; /* Blue for Folder Select */
     --text: #e0e0e0;
     --success: #10b981;
   }
@@ -25,7 +25,6 @@
     min-height: 100vh; margin: 0; padding: 20px;
   }
 
-  /* Scanline */
   body::before {
     content: ""; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
     background: linear-gradient(rgba(0,0,0,0) 50%, rgba(0,0,0,0.25) 50%);
@@ -44,9 +43,8 @@
     font-size: 10px; padding: 4px 8px; border: 1px solid #444; color: #666;
     text-transform: uppercase;
   }
-  .status-badge.online { border-color: var(--neon); color: var(--neon); box-shadow: 0 0 10px var(--neon-dim); }
+  .status-badge.online { border-color: var(--neon); color: var(--neon); box-shadow: 0 0 10px rgba(250, 204, 21, 0.2); }
 
-  /* Role Buttons */
   .role-select { display: flex; gap: 10px; }
   .btn-role {
     flex: 1; padding: 15px; border: 1px solid var(--border); background: var(--panel);
@@ -59,7 +57,6 @@
   .panel { display: none; flex-direction: column; gap: 15px; }
   .panel.visible { display: flex; }
 
-  /* ID & Input */
   .id-box {
     background: #000; border: 1px dashed var(--border); padding: 15px;
     text-align: center; font-size: 18px; color: #fff; cursor: pointer; word-break: break-all;
@@ -69,19 +66,26 @@
     flex: 1; background: #000; border: 1px solid var(--border); color: var(--neon);
     padding: 12px; font-family: inherit; text-transform: uppercase;
   }
+  
   .btn-action {
     background: var(--neon); color: #000; border: none; padding: 0 20px;
     font-weight: bold; cursor: pointer;
   }
+  
+  .btn-folder {
+    background: transparent; border: 1px solid var(--neon-blue); color: var(--neon-blue);
+    padding: 10px; cursor: pointer; font-family: inherit; font-size: 12px;
+    display: flex; align-items: center; justify-content: center; gap: 10px;
+  }
+  .btn-folder:hover { background: rgba(59, 130, 246, 0.1); }
+  .btn-folder.active { background: var(--neon-blue); color: #000; }
 
-  /* Batch UI */
   .drop-zone {
     border: 2px dashed #333; padding: 30px; text-align: center; color: #666;
     cursor: pointer; transition: 0.2s;
   }
   .drop-zone:hover { border-color: var(--neon); color: var(--neon); }
 
-  /* Global Progress */
   .batch-status {
     background: #111; padding: 10px; border: 1px solid #333; font-size: 12px;
     display: flex; justify-content: space-between; align-items: center;
@@ -89,7 +93,6 @@
   .global-bar-bg { width: 100%; height: 6px; background: #222; margin-top: 5px; }
   .global-bar-fill { height: 100%; width: 0%; background: var(--neon); transition: width 0.3s; }
 
-  /* List */
   .transfer-list { height: 200px; overflow-y: auto; border: 1px solid #222; padding: 5px; font-size: 11px; }
   .transfer-item {
     background: #0a0a0a; padding: 6px; margin-bottom: 2px; display: flex; justify-content: space-between;
@@ -98,7 +101,6 @@
   .transfer-item.active { color: var(--neon); border-left: 2px solid var(--neon); }
   .transfer-item.done { color: var(--success); }
 
-  /* Log */
   .terminal {
     background: #000; border-top: 1px solid #222; height: 100px; overflow-y: auto;
     padding: 10px; font-size: 10px; color: #555;
@@ -110,8 +112,8 @@
 <div class="container">
   <header>
     <div>
-      <h1>BATCH LINK // 500+</h1>
-      <div style="font-size: 10px; color: #666;">QUEUE SYSTEM ENABLED</div>
+      <h1>BATCH LINK // PRO</h1>
+      <div style="font-size: 10px; color: #666;">CUSTOM DESTINATION SUPPORT</div>
     </div>
     <div id="statusBadge" class="status-badge">OFFLINE</div>
   </header>
@@ -131,13 +133,11 @@
     </div>
 
     <div id="dropZone" class="drop-zone" onclick="document.getElementById('fileInput').click()">
-      [ CLICK TO SELECT 500+ FILES ]
+      [ CLICK TO SELECT FILES ]
     </div>
     <input type="file" id="fileInput" multiple style="display:none">
     
-    <div style="font-size: 10px; color: #666;">BATCH PROGRESS</div>
     <div class="global-bar-bg"><div class="global-bar-fill" id="globalProgress"></div></div>
-
     <div class="transfer-list" id="senderList"></div>
   </div>
 
@@ -147,14 +147,21 @@
       <input type="text" id="targetIdInput" placeholder="SENDER ID">
       <button class="btn-action" id="connectBtn" onclick="connectToPeer()">CONNECT</button>
     </div>
+
+    <!-- NEW FOLDER SELECTOR BUTTON -->
+    <button class="btn-folder" id="btnFolder" onclick="selectDestinationFolder()">
+      <span>📂 SELECT SAVE FOLDER (Optional - Chrome/Edge PC Only)</span>
+    </button>
+    
     <div class="batch-status">
       <div>RECEIVED: <span id="rxCount">0</span> FILES</div>
+      <div id="saveMode">MODE: DOWNLOADS</div>
     </div>
     <div class="transfer-list" id="receiverList"></div>
   </div>
 
   <div class="terminal" id="terminal">
-    <div>> System Ready. Batch processor loaded.</div>
+    <div>> System Ready.</div>
   </div>
 </div>
 
@@ -163,13 +170,15 @@
   let conn = null;
   let role = null;
   const CHUNK_SIZE = 16384; 
-  const MAX_CONCURRENT = 4; // Only send 4 files at once to prevent crash
+  const MAX_CONCURRENT = 4;
 
-  // Queue System State
   let fileQueue = [];
   let activeTransfers = 0;
   let totalFiles = 0;
   let filesCompleted = 0;
+
+  // DIRECTORY HANDLE (For Custom Folder)
+  let dirHandle = null;
 
   // --- PEERJS ---
   function initPeer() {
@@ -179,14 +188,11 @@
       updateStatus('ONLINE', true);
     });
     peer.on('connection', (c) => {
+      conn = c;
+      setupConn();
       if(role === 'sender') {
-        conn = c;
-        setupConn();
         log('Receiver connected.', 'success');
         document.getElementById('dropZone').style.borderColor = 'var(--neon)';
-      } else {
-        conn = c;
-        setupConn();
       }
     });
   }
@@ -210,27 +216,37 @@
     conn.on('close', () => updateStatus('OFFLINE', false));
   }
 
-  // --- BATCH SENDER LOGIC ---
-  const fileInput = document.getElementById('fileInput');
-  
-  fileInput.addEventListener('change', (e) => {
-    if (!conn || !conn.open) return alert("Connect to Receiver first!");
-    
-    // Add files to queue
+  // --- FOLDER SELECTION (NEW FEATURE) ---
+  async function selectDestinationFolder() {
+    if (!window.showDirectoryPicker) {
+      alert("Your browser does not support folder selection. Files will go to default Downloads folder.");
+      return;
+    }
+    try {
+      // REQUEST WRITE ACCESS UPFRONT to avoid SecurityError later
+      dirHandle = await window.showDirectoryPicker({ mode: 'readwrite' });
+      document.getElementById('btnFolder').classList.add('active');
+      document.getElementById('btnFolder').innerHTML = "📂 FOLDER SELECTED: " + dirHandle.name;
+      document.getElementById('saveMode').innerText = "MODE: CUSTOM DIR";
+      log(`Destination set to: ${dirHandle.name}`, 'success');
+    } catch (err) {
+      log('Folder selection cancelled or denied.', 'error');
+    }
+  }
+
+  // --- SENDER ---
+  document.getElementById('fileInput').addEventListener('change', (e) => {
+    if (!conn || !conn.open) return alert("Connect first!");
     const files = Array.from(e.target.files);
     fileQueue.push(...files);
     totalFiles += files.length;
-    
-    log(`Added ${files.length} files to queue.`, 'sys');
     document.getElementById('queueCount').innerText = fileQueue.length;
-    
-    processQueue(); // Start engine
+    processQueue();
   });
 
   function processQueue() {
-    // If queue has files AND we have slots available
     while (fileQueue.length > 0 && activeTransfers < MAX_CONCURRENT) {
-      const file = fileQueue.shift(); // Get next file
+      const file = fileQueue.shift();
       activeTransfers++;
       updateQueueUI();
       sendFile(file);
@@ -240,45 +256,34 @@
   function updateQueueUI() {
     document.getElementById('queueCount').innerText = fileQueue.length;
     document.getElementById('activeCount').innerText = activeTransfers;
-    const pct = (filesCompleted / totalFiles) * 100;
+    const pct = totalFiles > 0 ? (filesCompleted / totalFiles) * 100 : 0;
     document.getElementById('globalProgress').style.width = pct + "%";
   }
 
-  async function sendFile(file) {
+  function sendFile(file) {
     const fileId = Math.random().toString(36).substr(2, 9);
     addLogItem(file.name, 'senderList', fileId);
-    
-    // 1. Header
     conn.send({ type: 'header', id: fileId, name: file.name, size: file.size, mime: file.type });
 
-    // 2. Chunks
     let offset = 0;
     const reader = new FileReader();
-
     reader.onload = (e) => {
       conn.send({ type: 'chunk', id: fileId, data: e.target.result });
       offset += e.target.result.byteLength;
-
       if (offset < file.size) {
-        // Continue reading
-        const slice = file.slice(offset, offset + CHUNK_SIZE);
-        reader.readAsArrayBuffer(slice);
+        reader.readAsArrayBuffer(file.slice(offset, offset + CHUNK_SIZE));
       } else {
-        // Done
         markItemDone(fileId, 'senderList');
         activeTransfers--;
         filesCompleted++;
-        processQueue(); // TRIGGER NEXT FILE
+        processQueue();
         updateQueueUI();
       }
     };
-
-    // Start reading first chunk
-    const slice = file.slice(0, CHUNK_SIZE);
-    reader.readAsArrayBuffer(slice);
+    reader.readAsArrayBuffer(file.slice(0, CHUNK_SIZE));
   }
 
-  // --- RECEIVER LOGIC ---
+  // --- RECEIVER ---
   let rxCount = 0;
   const incoming = {};
 
@@ -291,29 +296,49 @@
       if(!ctx) return;
       ctx.buffer.push(data.data);
       ctx.received += data.data.byteLength;
-
       if(ctx.received >= ctx.meta.size) {
         saveFile(data.id);
       }
     }
   }
 
-  function saveFile(id) {
+  async function saveFile(id) {
     const ctx = incoming[id];
     const blob = new Blob(ctx.buffer, { type: ctx.meta.mime });
+    
+    // DECISION: CUSTOM FOLDER OR DEFAULT DOWNLOADS?
+    if (dirHandle) {
+      // 1. Write to custom folder (Direct File System Access)
+      try {
+        const fileHandle = await dirHandle.getFileHandle(ctx.meta.name, { create: true });
+        const writable = await fileHandle.createWritable();
+        await writable.write(blob);
+        await writable.close();
+      } catch (err) {
+        log(`Write error: ${err}`, 'error');
+        // Fallback if permission lost
+        downloadBlob(blob, ctx.meta.name);
+      }
+    } else {
+      // 2. Default Browser Behavior
+      downloadBlob(blob, ctx.meta.name);
+    }
+    
+    markItemDone(id, 'receiverList');
+    delete incoming[id];
+    rxCount++;
+    document.getElementById('rxCount').innerText = rxCount;
+  }
+
+  function downloadBlob(blob, filename) {
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = ctx.meta.name;
+    a.download = filename;
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
     URL.revokeObjectURL(url);
-    
-    markItemDone(id, 'receiverList');
-    delete incoming[id]; // Free RAM
-    rxCount++;
-    document.getElementById('rxCount').innerText = rxCount;
   }
 
   // --- UTILS ---
@@ -339,7 +364,7 @@
 
   function log(msg, type) {
     const d = document.createElement('div');
-    d.style.color = type === 'success' ? 'var(--neon)' : '#666';
+    d.style.color = type === 'success' ? 'var(--neon)' : (type === 'error' ? '#ff4444' : '#666');
     d.innerText = `> ${msg}`;
     document.getElementById('terminal').prepend(d);
   }
@@ -362,10 +387,17 @@
   }
 
   function copyId() {
-    const id = document.getElementById('myIdDisplay').innerText;
-    if(id.includes('...')) return;
-    navigator.clipboard.writeText(id);
-    log('ID Copied.', 'success');
+    const idText = document.getElementById('myIdDisplay').innerText;
+    if(idText.includes('...')) return;
+    const textArea = document.createElement("textarea");
+    textArea.value = idText;
+    textArea.style.position = "fixed"; textArea.style.left = "-9999px";
+    document.body.appendChild(textArea);
+    textArea.focus();
+    textArea.select();
+    try { document.execCommand('copy'); log('ID Copied.', 'success'); } 
+    catch (err) { log('Copy failed.', 'error'); }
+    document.body.removeChild(textArea);
   }
 </script>
 </body>
